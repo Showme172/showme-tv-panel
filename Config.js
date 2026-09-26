@@ -5,13 +5,15 @@
 
 window.SHOWME_CONFIG = {
 
-  /* ── الاتصال بقاعدة البيانات ── */
-  SUPABASE_URL:  'https://egbzsmwctoghvubahxvd.supabase.co',
-  SUPABASE_ANON: 'sb_publishable_dLosmUItcClwbFFTGEL8Jw_-G7G2BI-',
+  /* ── الاتصال بقاعدة البيانات ──
+     القيم هون بس Placeholder — القيم الحقيقية بتنزرع تلقائياً
+     وقت النشر من GitHub Secrets (شوفي .github/workflows/deploy.yml) */
+  SUPABASE_URL:  '__SUPABASE_URL__',
+  SUPABASE_ANON: '__SUPABASE_ANON__',
 
   /* ── الهوية ── */
   BRAND: 'Showme TV',
-  LOGO:  'logo.png',
+  LOGO:  'Logo.png',
 
   /* ── وسائل التواصل الظاهرة في الرسائل ── */
   CONTACT: {
