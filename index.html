@@ -965,6 +965,7 @@ html[dir="rtl"] #drawer{transform:translateX(-100%)}
       <div class="card donut" id="d30"></div>
       <div class="card donut" id="d90"></div>
       <div class="card donut" id="d365"></div>
+      <div class="card donut" id="dStripe"></div>
     </div>
 
     <div class="card" id="statsCard" style="margin-top:16px"></div>
@@ -2906,7 +2907,44 @@ $('payGenBtn').onclick = async () => {
 $('payCopyBtn').onclick = () => copy($('payResultUrl').value, 'تم نسخ رابط الدفع');
 
 /* رصيد Stripe */
-$('stripeBalanceBtn').onclick = async () => {
+async function drawStripeDonut(j){
+  const availSum = j ? j.available.reduce((s,x) => s + x.amount, 0) : 0;
+  const pendSum  = j ? j.pending.reduce((s,x) => s + x.amount, 0) : 0;
+  const totSum   = availSum + pendSum;
+  const R = 45, C = 2 * Math.PI * R;
+  const availLen = totSum ? (availSum / totSum) * C : 0;
+  const pendLen  = totSum ? (pendSum / totSum) * C : 0;
+  const ring = totSum
+    ? `<circle cx="60" cy="60" r="${R}" fill="none" stroke="var(--live)" stroke-width="16"
+         stroke-dasharray="${availLen.toFixed(2)} ${(C-availLen).toFixed(2)}"
+         transform="rotate(-90 60 60)"/>
+       <circle cx="60" cy="60" r="${R}" fill="none" stroke="var(--warn)" stroke-width="16"
+         stroke-dasharray="${pendLen.toFixed(2)} ${(C-pendLen).toFixed(2)}"
+         stroke-dashoffset="${(-availLen).toFixed(2)}"
+         transform="rotate(-90 60 60)"/>`
+    : `<circle cx="60" cy="60" r="${R}" fill="none" stroke="var(--line-soft)" stroke-width="16"/>`;
+
+  const cur = j?.available?.[0]?.currency || j?.pending?.[0]?.currency || 'EUR';
+  const fmtNum = (n) => n.toLocaleString('en-US', { minimumFractionDigits: 2 });
+
+  $('dStripe').innerHTML = `
+    <h3>رصيد Stripe</h3>
+    <svg class="ring" viewBox="0 0 120 120" width="150" height="150">${ring}</svg>
+    <div class="mid">
+      <b style="color:var(--live)">${j ? fmtNum(availSum) : '—'}</b>
+      <small>متاح ${j ? cur : ''}</small>
+    </div>
+    <div class="rows">
+      <div class="rw"><span><i style="background:var(--live)"></i>متاح للسحب</span><b>${j ? fmtNum(availSum) : '—'}</b></div>
+      <div class="rw"><span><i style="background:var(--warn)"></i>معلّق</span><b>${j ? fmtNum(pendSum) : '—'}</b></div>
+      <div class="rw"><span>الإجمالي</span><b>${j ? fmtNum(totSum) : '—'}</b></div>
+    </div>
+    <button class="btn-ghost btn-sm" id="dStripeRefresh" style="margin-top:8px;width:100%">🔄 تحديث</button>`;
+
+  $('dStripeRefresh').onclick = fetchStripeBalance;
+}
+
+async function fetchStripeBalance(){
   const b = $('stripeBalanceBtn'); const old = b.textContent;
   b.disabled = true; b.textContent = 'جاري الجلب...';
   try{
@@ -2945,8 +2983,13 @@ $('stripeBalanceBtn').onclick = async () => {
           <div><div class="hint" style="margin-bottom:2px">معلّق (بالطريق)</div><b style="font-size:18px;color:var(--warn)">${fmt(j.pending)}</b></div>
         </div>
       </div>`;
+
+    drawStripeDonut(j);
   }catch(e){ toast(e.message); }
   b.disabled = false; b.textContent = old;
+}
+$('stripeBalanceBtn').onclick = fetchStripeBalance;
+drawStripeDonut(null);
 };
 
 /* تقرير Stripe (إجمالي + آخر الحركات) */
