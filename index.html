@@ -1269,7 +1269,7 @@ html[dir="rtl"] #drawer{transform:translateX(-100%)}
   <div style="padding:0 24px;display:flex;flex-direction:column;gap:12px;max-height:64vh;overflow-y:auto">
     <div class="field">
       <label for="appName">اسم التطبيق</label>
-      <input id="appName" placeholder="مثلاً: IBO Player">
+      <input id="appNameField" placeholder="مثلاً: IBO Player">
     </div>
     <div class="field">
       <label for="appPlatform">المنصة</label>
@@ -1865,7 +1865,21 @@ function credsText(c){
 async function boot(){
   $('bootbar')?.classList.add('on');
   const { data:{ session } } = await db.auth.getSession();
+
   if(session){
+    // حتى لو في جلسة موجودة، لازم نتأكد إنو التحقق بخطوتين (لو مفعّل) خلص فعلاً —
+    // وإلا حدا يقدر يتخطى كود الـ 2FA بس بعمل تحديث للصفحة بعد كلمة السر مباشرة
+    const { data: aal } = await db.auth.mfa.getAuthenticatorAssuranceLevel();
+    if(aal?.nextLevel === 'aal2' && aal.nextLevel !== aal.currentLevel){
+      $('login').style.display='grid'; $('app').style.display='none';
+      $('em').value = session.user.email; $('em').disabled = true; $('pw').disabled = true;
+      $('loginBtn').style.display = 'none';
+      $('mfaStep').style.display = 'block';
+      $('mfaLogin').focus();
+      $('bootbar')?.classList.remove('on');
+      return;
+    }
+
     showApp(session.user.email);
     await loadMe(session.user);
     await loadRates(); await loadPlans(); await loadProviders(); await load();
@@ -3218,7 +3232,7 @@ let editingAppId = null;
 function openAppModal(a){
   editingAppId = a ? a.id : null;
   $('appModalTitle').textContent = a ? 'تعديل تطبيق' : 'تطبيق جديد';
-  $('appName').value = a?.name || '';
+  $('appNameField').value = a?.name || '';
   $('appPlatform').value = a?.platform || 'android';
   $('appVersion').value = a?.version || '';
   $('appDownloadUrl').value = a?.download_url || '';
@@ -3235,7 +3249,7 @@ $('appCancelBtn').onclick = closeAppModal;
 $('appScrim').onclick = closeAppModal;
 
 $('appSaveBtn').onclick = async () => {
-  const name = $('appName').value.trim();
+  const name = $('appNameField').value.trim();
   const download_url = normalizeAppUrl($('appDownloadUrl').value);
   if(!name){ toast('اكتب اسم التطبيق'); return; }
   if(!download_url){ toast('حط رابط التحميل'); return; }
