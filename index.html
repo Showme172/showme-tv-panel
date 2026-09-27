@@ -1249,7 +1249,7 @@ html[dir="rtl"] #drawer{transform:translateX(-100%)}
       <button class="btn-ghost" id="payLinksRefresh">🔄 تحديث</button>
     </div>
     <table>
-      <thead><tr><th>التاريخ</th><th>العميل</th><th>المبلغ</th><th>الوصف</th><th>الحالة</th><th></th></tr></thead>
+      <thead><tr><th>التاريخ</th><th>العميل</th><th>ملاحظة داخلية</th><th>المبلغ</th><th>الوصف</th><th>الحالة</th><th></th></tr></thead>
       <tbody id="payLinksRows"></tbody>
     </table>
     <div class="empty" id="payLinksEmpty" style="display:none">
@@ -1465,6 +1465,10 @@ html[dir="rtl"] #drawer{transform:translateX(-100%)}
     <div class="field">
       <label for="payDesc">وصف (اختياري)</label>
       <input id="payDesc" placeholder="مثلاً: تجديد اشتراك سنوي">
+    </div>
+    <div class="field">
+      <label for="payNote">ملاحظة داخلية (تشوفيها إنتِ بس، ما بتطلع للعميل ولا لـ Stripe)</label>
+      <input id="payNote" placeholder="مثلاً: اسم العميل أو رقمه">
     </div>
     <div id="payResultBox" style="display:none">
       <label>رابط الدفع</label>
@@ -2852,6 +2856,7 @@ $('openPayLink').onclick = () => {
   $('payAmount').value = '';
   $('payCurrency').value = 'EUR — يورو';
   $('payDesc').value = '';
+  $('payNote').value = current?.full_name || current?.xtream_user || '';
   $('payResultBox').style.display = 'none';
   $('payModal').classList.add('open'); $('payScrim').classList.add('open');
 };
@@ -2862,6 +2867,7 @@ $('newCustPayBtn').onclick = () => {
   $('payAmount').value = '';
   $('payCurrency').value = 'EUR — يورو';
   $('payDesc').value = '';
+  $('payNote').value = '';
   $('payResultBox').style.display = 'none';
   $('payModal').classList.add('open'); $('payScrim').classList.add('open');
 };
@@ -2878,7 +2884,8 @@ $('payGenBtn').onclick = async () => {
   const currency = currencyCode();
   const description = $('payDesc').value.trim();
 
-  const payload = { amount, currency, description, agent_no: me?.agent_no ?? null };
+  const internal_note = $('payNote').value.trim();
+  const payload = { amount, currency, description, agent_no: me?.agent_no ?? null, internal_note: internal_note || null };
 
   if(payMode === 'existing'){
     if(!current){ toast('افتح عميل أول'); return; }
@@ -3343,11 +3350,11 @@ const PAY_STATUS_COLOR = { pending:'var(--warn)', paid:'var(--live)', canceled:'
 async function loadPayLinks(){
   const { data, error } = await db
     .from('payment_links')
-    .select('id, amount, currency, description, status, created_at, is_new_customer, customers(full_name, xtream_user)')
+    .select('id, amount, currency, description, status, created_at, is_new_customer, internal_note, customers(full_name, xtream_user)')
     .order('created_at', { ascending: false })
     .limit(100);
   const tb = $('payLinksRows');
-  if(error){ tb.innerHTML = `<tr><td colspan="6" class="hint">تعذّر التحميل: ${esc(error.message)}</td></tr>`; return; }
+  if(error){ tb.innerHTML = `<tr><td colspan="7" class="hint">تعذّر التحميل: ${esc(error.message)}</td></tr>`; return; }
 
   const rows = data || [];
   $('payLinksEmpty').style.display = rows.length ? 'none' : 'block';
@@ -3358,6 +3365,7 @@ async function loadPayLinks(){
     <tr>
       <td class="sub">${fmt(r.created_at)}</td>
       <td class="edge">${esc(custName)}</td>
+      <td class="sub">${esc(r.internal_note) || '—'}</td>
       <td>${r.amount} ${String(r.currency).toUpperCase()}</td>
       <td class="sub">${esc(r.description) || '—'}</td>
       <td><span style="color:${PAY_STATUS_COLOR[r.status] || 'var(--muted)'}">${PAY_STATUS_LABEL[r.status] || esc(r.status)}</span></td>
