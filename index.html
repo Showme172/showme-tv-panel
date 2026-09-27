@@ -3188,7 +3188,7 @@ async function loadApps(){
   }).join('');
 
   tb.querySelectorAll('[data-appedit]').forEach(b => {
-    b.onclick = () => openAppModal(apps.find(x => x.id === b.dataset.appedit));
+    b.onclick = () => openAppModal(apps.find(x => String(x.id) === b.dataset.appedit));
   });
   tb.querySelectorAll('[data-appdel]').forEach(b => {
     b.onclick = async () => {
@@ -3216,10 +3216,10 @@ async function loadApps(){
 }
 
 async function moveApp(id, dir){
-  const a = apps.find(x => x.id === id);
+  const a = apps.find(x => String(x.id) === id);
   if(!a) return;
   const platApps = apps.filter(x => x.platform === a.platform);
-  const idx = platApps.findIndex(x => x.id === id);
+  const idx = platApps.findIndex(x => String(x.id) === id);
   const swapIdx = dir === 'up' ? idx - 1 : idx + 1;
   if(swapIdx < 0 || swapIdx >= platApps.length) return;
   const b = platApps[swapIdx];
